@@ -27,27 +27,30 @@ export function ConsistencyHeatmap({ data, calculateTotals }: ConsistencyHeatmap
   }, [data, calculateTotals]);
 
   const today = new Date();
-  const startDate = startOfWeek(subDays(today, 105), { weekStartsOn: 1 }); // approx 15 weeks
-  const endDate = endOfWeek(today, { weekStartsOn: 1 });
+  
+  let startDate = today;
+  if (data && data.length > 0) {
+    const minTimestamp = Math.min(...data.map(d => d.timestamp));
+    startDate = new Date(minTimestamp);
+  }
+
+  // We want to show a grid of at least 140 boxes (approx 5 months)
+  let endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + 139);
+
+  // If today is past the calculated endDate, we extend the grid to cover today
+  if (today > endDate) {
+    endDate = new Date(today);
+  }
 
   const days = eachDayOfInterval({ start: startDate, end: endDate });
 
-  const weeks: Date[][] = [];
-  let currentWeek: Date[] = [];
-  days.forEach((day, i) => {
-    currentWeek.push(day);
-    if (currentWeek.length === 7) {
-      weeks.push(currentWeek);
-      currentWeek = [];
-    }
-  });
-
   const getColor = (average?: number) => {
-    if (average === undefined) return 'bg-slate-100 border-slate-200';
-    if (average >= 97.5) return 'bg-emerald-600 border-emerald-700'; // Highest
-    if (average >= 80) return 'bg-emerald-400 border-emerald-500'; // High
-    if (average >= 60) return 'bg-emerald-300 border-emerald-400'; // Medium
-    return 'bg-emerald-200 border-emerald-300'; // Low
+    if (average === undefined) return 'bg-slate-100 border-slate-300';
+    if (average >= 97.5) return 'bg-emerald-600 border-slate-600'; // Highest
+    if (average >= 80) return 'bg-emerald-400 border-slate-600'; // High
+    if (average >= 60) return 'bg-emerald-300 border-slate-600'; // Medium
+    return 'bg-emerald-200 border-slate-600'; // Low
   };
 
   return (
@@ -59,38 +62,34 @@ export function ConsistencyHeatmap({ data, calculateTotals }: ConsistencyHeatmap
         </h2>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center overflow-x-auto custom-scrollbar pb-2">
-        <div className="flex gap-1.5 min-w-max mx-auto">
-          {weeks.map((week, wIndex) => (
-            <div key={wIndex} className="flex flex-col gap-1.5">
-              {week.map((date, dIndex) => {
-                const dateStr = format(date, 'yyyy-MM-dd');
-                const avg = dailyAverages[dateStr];
-                const isFuture = date > today;
-                
-                return (
-                  <div
-                    key={dIndex}
-                    title={`${format(date, 'dd MMM yyyy', { locale: id })}${avg !== undefined ? ` - Rata-rata: ${avg.toFixed(1)}` : ' - Belum ada data'}`}
-                    className={`w-4 h-4 rounded-sm border ${isFuture ? 'bg-transparent border-transparent' : getColor(avg)} transition-colors`}
-                  />
-                );
-              })}
-            </div>
-          ))}
+      <div className="flex-1 overflow-auto pb-2">
+        <div className="flex flex-wrap gap-1.5 items-start content-start">
+          {days.map((date, dIndex) => {
+            const dateStr = format(date, 'yyyy-MM-dd');
+            const avg = dailyAverages[dateStr];
+            const isFuture = date > today;
+            
+            return (
+              <div
+                key={dIndex}
+                title={`${format(date, 'dd MMM yyyy', { locale: id })}${avg !== undefined ? ` - Rata-rata: ${avg.toFixed(1)}` : ' - Belum ada data'}`}
+                className={`w-4 h-4 sm:w-5 sm:h-5 rounded-[3px] border ${getColor(avg)} transition-colors ${isFuture ? 'opacity-40' : ''}`}
+              />
+            );
+          })}
         </div>
-        
-        <div className="mt-4 flex items-center justify-end gap-2 text-xs text-slate-500 min-w-max mx-auto px-2">
-          <span>Rendah</span>
-          <div className="flex gap-1">
-            <div className={`w-3 h-3 rounded-sm border ${getColor(undefined)}`}></div>
-            <div className={`w-3 h-3 rounded-sm border ${getColor(40)}`}></div>
-            <div className={`w-3 h-3 rounded-sm border ${getColor(70)}`}></div>
-            <div className={`w-3 h-3 rounded-sm border ${getColor(85)}`}></div>
-            <div className={`w-3 h-3 rounded-sm border ${getColor(100)}`}></div>
-          </div>
-          <span>Tinggi (&ge; 97.5)</span>
+      </div>
+      
+      <div className="mt-4 flex items-center justify-end gap-2 text-xs text-slate-500">
+        <span>Rendah</span>
+        <div className="flex gap-1.5">
+          <div className={`w-4 h-4 rounded-[3px] border ${getColor(undefined)}`}></div>
+          <div className={`w-4 h-4 rounded-[3px] border ${getColor(40)}`}></div>
+          <div className={`w-4 h-4 rounded-[3px] border ${getColor(70)}`}></div>
+          <div className={`w-4 h-4 rounded-[3px] border ${getColor(85)}`}></div>
+          <div className={`w-4 h-4 rounded-[3px] border ${getColor(100)}`}></div>
         </div>
+        <span>Tinggi (&ge; 97.5)</span>
       </div>
     </div>
   );
