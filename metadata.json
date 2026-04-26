@@ -1,0 +1,6 @@
+{
+  "name": "EPS-TOPIK Tracker",
+  "description": "Aplikasi tracking nilai tryout bahasa Korea (EPS-TOPIK) dengan visualisasi bar chart ala trader.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
